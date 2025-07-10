@@ -1,0 +1,14 @@
+{
+  "meeting_id": "bbd45fb8-a2a9-4708-b929-a9acb2fda37e",
+  "test_name": "Music/song context prompt",
+  "parameters": {
+    "language": "en",
+    "temperature": 0.0,
+    "prompt": "This is a song or music recording. Transcribe the lyrics accurately."
+  },
+  "created_at": "2025-07-10T16:05:36.179019",
+  "transcript": "It's been flowing on down for nearly 10,000 years, if rivers could cry, she'd be flowing with tears. They're killing my river, and I've been watching it die, what can one man do, if I knew it I'd try. Ottawa and Washington, they have a plan, they'll appoint a committee and study it again, promises broken, politicians' lies, it's rhetoric enough to bury you alive. They're still killing my river, and I've been watching it die, what can one man do, if I knew it I'd try. River killer, you're red, white, and blue, you're a river killer, don't you care what you do. I don't remember the next verse, we're going to sing it together the chorus. You're a river killer, red, white, and blue, you're a river killer, don't you care what you do.",
+  "original_length": 760,
+  "cleaned_length": 759,
+  "reduction": 1
+}

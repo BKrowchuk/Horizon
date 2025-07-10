@@ -10,7 +10,7 @@ def test_transcription():
     """Test the transcription endpoint"""
     
     # Test data
-    meeting_id = "bbd45fb8-a2a9-4708-b929-a9acb2fda37e"
+    meeting_id = "c49ddc0a-1017-4216-83f6-8128de7c5a88"
     
     # Check if audio file exists
     audio_path = Path(f"storage/audio/{meeting_id}_audio.mp3")
