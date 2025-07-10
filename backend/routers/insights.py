@@ -5,10 +5,13 @@ import json
 
 router = APIRouter()
 
-@router.post("/insights", response_model=InsightsResponse)
+@router.post("/insights", response_model=InsightsResponse, summary="Generate insights from content", tags=["insights"])
 async def generate_insights(request: InsightsRequest):
     """
     Generate insights from transcribed content
+    
+    - **request**: Insights request with file_id
+    - **returns**: Insights response with sentiment, topics, and entities
     """
     try:
         # Check if transcript exists
@@ -58,10 +61,13 @@ async def generate_insights(request: InsightsRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Insights generation failed: {str(e)}")
 
-@router.get("/insights/{file_id}")
+@router.get("/insights/{file_id}", summary="Get insights for file", tags=["insights"])
 async def get_insights(file_id: str):
     """
     Get insights for a specific file
+    
+    - **file_id**: ID of the file to get insights for
+    - **returns**: Insights data for the file
     """
     insights_path = Path(f"storage/outputs/{file_id}_insights.json")
     if insights_path.exists():
@@ -69,4 +75,4 @@ async def get_insights(file_id: str):
             data = json.load(f)
         return data
     else:
-        raise HTTPException(status_code=404, detail="Insights not found") 
+        raise HTTPException(status_code=404, detail="Insights not found")

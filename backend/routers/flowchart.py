@@ -5,10 +5,13 @@ import json
 
 router = APIRouter()
 
-@router.post("/flowchart", response_model=FlowchartResponse)
+@router.post("/flowchart", response_model=FlowchartResponse, summary="Generate flowchart from content", tags=["flowchart"])
 async def generate_flowchart(request: FlowchartRequest):
     """
     Generate a flowchart from content
+    
+    - **request**: Flowchart request with file_id and flowchart type
+    - **returns**: Flowchart response with nodes, edges, and visualization data
     """
     try:
         # Check if transcript exists
@@ -63,10 +66,13 @@ async def generate_flowchart(request: FlowchartRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Flowchart generation failed: {str(e)}")
 
-@router.get("/flowchart/{file_id}")
+@router.get("/flowchart/{file_id}", summary="Get flowchart for file", tags=["flowchart"])
 async def get_flowchart(file_id: str):
     """
     Get flowchart for a specific file
+    
+    - **file_id**: ID of the file to get flowchart for
+    - **returns**: Flowchart data for the file
     """
     flowchart_path = Path(f"storage/outputs/{file_id}_flowchart.json")
     if flowchart_path.exists():
@@ -76,11 +82,14 @@ async def get_flowchart(file_id: str):
     else:
         raise HTTPException(status_code=404, detail="Flowchart not found")
 
-@router.get("/flowchart/{file_id}/image")
+@router.get("/flowchart/{file_id}/image", summary="Get flowchart as image", tags=["flowchart"])
 async def get_flowchart_image(file_id: str):
     """
     Get flowchart as image
+    
+    - **file_id**: ID of the file to get flowchart image for
+    - **returns**: Flowchart image data
     """
     # TODO: Implement image generation and serving
     # This is a placeholder
-    return {"message": "Image generation not implemented yet"} 
+    return {"message": "Image generation not implemented yet"}

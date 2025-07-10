@@ -6,10 +6,13 @@ from agents.transcription_agent import transcribe_audio_file
 
 router = APIRouter()
 
-@router.post("/transcribe", response_model=TranscriptionResponse)
+@router.post("/transcribe", response_model=TranscriptionResponse, summary="Transcribe audio file", tags=["transcribe"])
 async def transcribe_audio(request: TranscriptionRequest):
     """
     Transcribe an uploaded audio file
+    
+    - **request**: Transcription request with file_id
+    - **returns**: Transcription response with transcript data
     """
     try:
         # Check if file exists
@@ -49,10 +52,13 @@ async def transcribe_audio(request: TranscriptionRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
 
-@router.get("/transcribe/status/{file_id}")
+@router.get("/transcribe/status/{file_id}", summary="Get transcription status", tags=["transcribe"])
 async def get_transcription_status(file_id: str):
     """
     Get the status of a transcription job
+    
+    - **file_id**: ID of the file to check status for
+    - **returns**: Transcription status information
     """
     transcript_path = Path(f"storage/transcripts/{file_id}.json")
     if transcript_path.exists():
@@ -62,10 +68,13 @@ async def get_transcription_status(file_id: str):
     else:
         return {"status": "pending", "file_id": file_id}
 
-@router.post("/api/transcribe")
+@router.post("/transcribe/meeting", summary="Transcribe meeting using OpenAI Whisper", tags=["transcribe"])
 async def transcribe_meeting(request: dict):
     """
     Transcribe a meeting audio file using OpenAI Whisper API
+    
+    - **request**: Dictionary containing meeting_id
+    - **returns**: Transcript data from OpenAI Whisper
     """
     try:
         meeting_id = request.get("meeting_id")
@@ -84,4 +93,4 @@ async def transcribe_meeting(request: dict):
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")

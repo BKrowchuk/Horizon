@@ -6,10 +6,13 @@ from datetime import datetime
 
 router = APIRouter()
 
-@router.post("/report", response_model=ReportResponse)
+@router.post("/report", response_model=ReportResponse, summary="Generate comprehensive report", tags=["report"])
 async def generate_report(request: ReportRequest):
     """
     Generate a comprehensive report
+    
+    - **request**: Report request with file_id and report type
+    - **returns**: Report response with sections and export URLs
     """
     try:
         # Check if file exists
@@ -88,10 +91,13 @@ async def generate_report(request: ReportRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}")
 
-@router.get("/report/{file_id}")
+@router.get("/report/{file_id}", summary="Get report for file", tags=["report"])
 async def get_report(file_id: str):
     """
     Get report for a specific file
+    
+    - **file_id**: ID of the file to get report for
+    - **returns**: Report data for the file
     """
     report_path = Path(f"storage/outputs/{file_id}_report.json")
     if report_path.exists():
@@ -101,18 +107,24 @@ async def get_report(file_id: str):
     else:
         raise HTTPException(status_code=404, detail="Report not found")
 
-@router.get("/report/{file_id}/pdf")
+@router.get("/report/{file_id}/pdf", summary="Get report as PDF", tags=["report"])
 async def get_report_pdf(file_id: str):
     """
     Get report as PDF
+    
+    - **file_id**: ID of the file to get PDF report for
+    - **returns**: PDF report data
     """
     # TODO: Implement PDF generation
     return {"message": "PDF generation not implemented yet"}
 
-@router.get("/report/{file_id}/html")
+@router.get("/report/{file_id}/html", summary="Get report as HTML", tags=["report"])
 async def get_report_html(file_id: str):
     """
     Get report as HTML
+    
+    - **file_id**: ID of the file to get HTML report for
+    - **returns**: HTML report data
     """
     # TODO: Implement HTML generation
-    return {"message": "HTML generation not implemented yet"} 
+    return {"message": "HTML generation not implemented yet"}

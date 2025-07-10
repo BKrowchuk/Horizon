@@ -5,10 +5,13 @@ import json
 
 router = APIRouter()
 
-@router.post("/query", response_model=QueryResponse)
+@router.post("/query", response_model=QueryResponse, summary="Query processed content", tags=["query"])
 async def query_content(request: QueryRequest):
     """
     Query processed content and data
+    
+    - **request**: Query request with file_id and query parameters
+    - **returns**: Query response with results and confidence scores
     """
     try:
         # Check if file exists
@@ -61,18 +64,23 @@ async def query_content(request: QueryRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query processing failed: {str(e)}")
 
-@router.get("/query/{file_id}/history")
+@router.get("/query/{file_id}/history", summary="Get query history", tags=["query"])
 async def get_query_history(file_id: str):
     """
     Get query history for a file
+    
+    - **file_id**: ID of the file to get query history for
+    - **returns**: Query history for the file
     """
     # TODO: Implement query history tracking
     return {"file_id": file_id, "queries": []}
 
-@router.get("/query/suggestions")
+@router.get("/query/suggestions", summary="Get query suggestions", tags=["query"])
 async def get_query_suggestions():
     """
     Get query suggestions
+    
+    - **returns**: List of suggested queries
     """
     suggestions = [
         "What are the main topics discussed?",
@@ -81,4 +89,4 @@ async def get_query_suggestions():
         "What are the main action items?",
         "What is the overall summary?"
     ]
-    return {"suggestions": suggestions} 
+    return {"suggestions": suggestions}

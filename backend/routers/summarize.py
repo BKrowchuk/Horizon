@@ -5,10 +5,13 @@ import json
 
 router = APIRouter()
 
-@router.post("/summarize", response_model=SummarizeResponse)
+@router.post("/summarize", response_model=SummarizeResponse, summary="Summarize transcribed text", tags=["summarize"])
 async def summarize_text(request: SummarizeRequest):
     """
     Summarize transcribed text
+    
+    - **request**: Summarize request with file_id
+    - **returns**: Summary response with key points and metrics
     """
     try:
         # Check if transcript exists
@@ -52,10 +55,13 @@ async def summarize_text(request: SummarizeRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Summarization failed: {str(e)}")
 
-@router.get("/summarize/{file_id}")
+@router.get("/summarize/{file_id}", summary="Get summary for file", tags=["summarize"])
 async def get_summary(file_id: str):
     """
     Get the summary for a specific file
+    
+    - **file_id**: ID of the file to get summary for
+    - **returns**: Summary data for the file
     """
     summary_path = Path(f"storage/outputs/{file_id}_summary.json")
     if summary_path.exists():
@@ -63,4 +69,4 @@ async def get_summary(file_id: str):
             data = json.load(f)
         return data
     else:
-        raise HTTPException(status_code=404, detail="Summary not found") 
+        raise HTTPException(status_code=404, detail="Summary not found")

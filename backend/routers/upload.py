@@ -8,10 +8,13 @@ from pathlib import Path
 
 router = APIRouter()
 
-@router.post("/api/upload", response_model=UploadResponse)
+@router.post("/upload", response_model=UploadResponse, summary="Upload audio file", tags=["upload"])
 async def upload_file(file: UploadFile = File(...)):
     """
     Upload an audio file for processing
+    
+    - **file**: Audio file to upload (mp3, wav, m4a, flac, ogg, aac)
+    - **returns**: Upload response with meeting ID and filename
     """
     try:
         # Debug logging
@@ -57,13 +60,16 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
-@router.get("/upload/status/{file_id}")
+@router.get("/upload/status/{file_id}", summary="Get upload status", tags=["upload"])
 async def get_upload_status(file_id: str):
     """
     Get the status of an uploaded file
+    
+    - **file_id**: ID of the uploaded file
+    - **returns**: Upload status information
     """
     file_path = Path(f"storage/audio/{file_id}")
     if file_path.exists():
         return {"status": "uploaded", "file_id": file_id}
     else:
-        raise HTTPException(status_code=404, detail="File not found") 
+        raise HTTPException(status_code=404, detail="File not found")

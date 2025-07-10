@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from routers import upload, transcribe, summarize, insights, actions, flowchart, query, report
 
@@ -17,15 +17,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(upload.router, prefix="/api/v1", tags=["upload"])
-app.include_router(transcribe.router, prefix="/api/v1", tags=["transcribe"])
-app.include_router(summarize.router, prefix="/api/v1", tags=["summarize"])
-app.include_router(insights.router, prefix="/api/v1", tags=["insights"])
-app.include_router(actions.router, prefix="/api/v1", tags=["actions"])
-app.include_router(flowchart.router, prefix="/api/v1", tags=["flowchart"])
-app.include_router(query.router, prefix="/api/v1", tags=["query"])
-app.include_router(report.router, prefix="/api/v1", tags=["report"])
+# Create global router with /api/v1 prefix
+router = APIRouter(prefix="/api/v1")
+
+# Include all routers under the global router
+router.include_router(upload.router, tags=["upload"])
+router.include_router(transcribe.router, tags=["transcribe"])
+router.include_router(summarize.router, tags=["summarize"])
+router.include_router(insights.router, tags=["insights"])
+router.include_router(actions.router, tags=["actions"])
+router.include_router(flowchart.router, tags=["flowchart"])
+router.include_router(query.router, tags=["query"])
+router.include_router(report.router, tags=["report"])
+
+# Mount the global router on the app
+app.include_router(router)
 
 @app.get("/")
 async def root():
@@ -37,4 +43,4 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    uvicorn.run(app, host="0.0.0.0", port=8000)
