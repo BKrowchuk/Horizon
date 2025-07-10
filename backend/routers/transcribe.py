@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from models.transcribe import TranscriptionRequest, TranscriptionResponse
 from pathlib import Path
 import json
+from agents.transcription_agent import transcribe_audio_file
 
 router = APIRouter()
 
@@ -59,4 +60,28 @@ async def get_transcription_status(file_id: str):
             data = json.load(f)
         return {"status": "completed", "file_id": file_id, "data": data}
     else:
-        return {"status": "pending", "file_id": file_id} 
+        return {"status": "pending", "file_id": file_id}
+
+@router.post("/api/transcribe")
+async def transcribe_meeting(request: dict):
+    """
+    Transcribe a meeting audio file using OpenAI Whisper API
+    """
+    try:
+        meeting_id = request.get("meeting_id")
+        if not meeting_id:
+            raise HTTPException(status_code=400, detail="meeting_id is required")
+        
+        # Call the transcription agent
+        transcript_path = transcribe_audio_file(meeting_id)
+        
+        # Load and return the transcript data
+        with open(transcript_path, "r", encoding="utf-8") as f:
+            transcript_data = json.load(f)
+        
+        return transcript_data
+        
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}") 
