@@ -1,6 +1,6 @@
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
-from routers import upload, transcribe, summarize, insights, actions, flowchart, query, report, embedding
+from routers import upload, transcribe, summarize, insights, actions, flowchart, query, report, embedding, vectorize
 
 app = FastAPI(
     title="StubbesScript API",
@@ -30,6 +30,7 @@ router.include_router(flowchart.router, tags=["flowchart"])
 router.include_router(query.router, tags=["query"])
 router.include_router(report.router, tags=["report"])
 router.include_router(embedding.router, tags=["embedding"])
+router.include_router(vectorize.router, tags=["vectorize"])
 
 # Mount the global router on the app
 app.include_router(router)
