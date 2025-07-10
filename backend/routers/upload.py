@@ -8,7 +8,7 @@ from pathlib import Path
 
 router = APIRouter()
 
-@router.post("/api/upload")
+@router.post("/api/upload", response_model=UploadResponse)
 async def upload_file(file: UploadFile = File(...)):
     """
     Upload an audio file for processing
@@ -37,8 +37,8 @@ async def upload_file(file: UploadFile = File(...)):
         if not file_extension or file_extension not in ['.mp3', '.wav']:
             file_extension = '.mp3'  # Default to mp3 if no valid extension
         
-        # Create filename with meeting ID prefix
-        filename = f"{meeting_id}{file_extension}"
+        # Create filename with meeting ID prefix and _audio suffix to match transcription agent
+        filename = f"{meeting_id}_audio{file_extension}"
         
         # Create storage directory if it doesn't exist
         storage_dir = Path("storage/audio")
@@ -49,10 +49,10 @@ async def upload_file(file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        return {
-            "meeting_id": meeting_id,
-            "filename": filename
-        }
+        return UploadResponse(
+            meeting_id=meeting_id,
+            filename=filename
+        )
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")

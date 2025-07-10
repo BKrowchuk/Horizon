@@ -38,16 +38,99 @@ A FastAPI-based backend for audio processing, transcription, and analysis.
    - Alternative Docs: http://localhost:8000/redoc
    - Health Check: http://localhost:8000/health
 
+## Complete Workflow Example
+
+Here's a complete example of uploading and transcribing an audio file using curl:
+
+### 1. Upload Audio File
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/api/upload" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@C:\src\StubbesScript\RiverKiller.mp3"
+```
+
+**Response:**
+
+```json
+{
+  "meeting_id": "uuid-string-here",
+  "filename": "uuid-string-here_audio.mp3"
+}
+```
+
+### 2. Transcribe the Uploaded Audio
+
+After uploading, you can transcribe using either of these endpoints:
+
+#### Option A: Using the /transcribe endpoint (requires file_id)
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/transcribe" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "file_id": "your-meeting-id-here",
+    "language": "en",
+    "model": "default"
+  }'
+```
+
+#### Option B: Using the /api/transcribe endpoint (requires meeting_id)
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/api/transcribe" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "meeting_id": "your-meeting-id-here"
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "file_id": "your-meeting-id-here",
+  "transcript": "This is the transcribed text...",
+  "confidence": 0.95,
+  "language": "en",
+  "duration": 120.5
+}
+```
+
+### Complete Example with RiverKiller.mp3
+
+```bash
+# 1. Upload the audio file
+curl -X POST "http://localhost:8000/api/v1/api/upload" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@RiverKiller.mp3"
+
+# 2. Use the meeting_id from the response to transcribe
+curl -X POST "http://localhost:8000/api/v1/api/transcribe" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "meeting_id": "meeting-id-from-upload-response"
+  }'
+```
+
+**Notes:**
+
+- The server needs to be running on `localhost:8000` (default FastAPI port)
+- Replace `your-meeting-id-here` with the actual `meeting_id` returned from the upload response
+- The API supports various audio formats: `.mp3`, `.wav`, `.m4a`, `.flac`, `.ogg`, `.aac`
+
 ## API Endpoints
 
 ### Upload
 
-- `POST /api/v1/upload` - Upload audio file
+- `POST /api/v1/api/upload` - Upload audio file
 - `GET /api/v1/upload/status/{file_id}` - Get upload status
 
 ### Transcribe
 
 - `POST /api/v1/transcribe` - Transcribe audio file
+- `POST /api/v1/api/transcribe` - Transcribe meeting audio
 - `GET /api/v1/transcribe/status/{file_id}` - Get transcription status
 
 ### Summarize

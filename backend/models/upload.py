@@ -8,7 +8,5 @@ class UploadRequest(BaseModel):
 
 class UploadResponse(BaseModel):
     """Response model for file upload"""
-    success: bool
-    message: str
-    file_id: str
-    file_path: str 
+    meeting_id: str
+    filename: str 
