@@ -7,10 +7,13 @@ import sys
 from pathlib import Path
 import json
 
+# Add the parent directory to the path so we can import from the backend modules
+sys.path.append(str(Path(__file__).parent.parent))
+
 def analyze_audio_file(meeting_id: str):
     """Analyze the audio file to understand potential transcription issues"""
     
-    audio_path = Path(f"storage/audio/{meeting_id}_audio.mp3")
+    audio_path = Path(__file__).parent.parent / f"storage/audio/{meeting_id}_audio.mp3"
     
     if not audio_path.exists():
         print(f"❌ Audio file not found: {audio_path}")
@@ -74,8 +77,8 @@ def test_transcription_with_analysis(meeting_id: str):
     if not analyze_audio_file(meeting_id):
         return False
     
-    # Check existing transcript
-    transcript_path = Path(f"storage/transcripts/{meeting_id}.json")
+    # Check existing transcript - update path to go up one level
+    transcript_path = Path(__file__).parent.parent / f"storage/transcripts/{meeting_id}.json"
     if transcript_path.exists():
         print(f"\n📄 Found existing transcript: {transcript_path}")
         try:

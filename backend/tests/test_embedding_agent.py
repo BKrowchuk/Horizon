@@ -5,7 +5,12 @@ Test script for the embedding agent
 
 import json
 import os
+import sys
 from pathlib import Path
+
+# Add the parent directory to the path so we can import from the backend modules
+sys.path.append(str(Path(__file__).parent.parent))
+
 from agents.embedding_agent import embed_transcript, search_similar_chunks
 
 

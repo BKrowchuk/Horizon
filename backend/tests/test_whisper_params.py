@@ -5,9 +5,13 @@ Test different Whisper API parameters to find optimal configuration
 import openai
 import json
 import os
+import sys
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
+
+# Add the parent directory to the path so we can import from the backend modules
+sys.path.append(str(Path(__file__).parent.parent))
 
 # Load environment variables
 load_dotenv()
@@ -80,7 +84,7 @@ def main():
     """Test various Whisper configurations"""
     
     meeting_id = "3173c1ca-5e13-454e-9b20-706fab4d53f1"
-    audio_file_path = Path(f"storage/audio/{meeting_id}_audio.mp3")
+    audio_file_path = Path(__file__).parent.parent / f"storage/audio/{meeting_id}_audio.mp3"
     
     if not audio_file_path.exists():
         print(f"❌ Audio file not found: {audio_file_path}")
@@ -150,8 +154,8 @@ def main():
         print(f"📊 Reduction rate: {best_result['reduction']/best_result['original_length']*100:.1f}%")
         print(f"📝 Final transcript: {best_result['transcript']}")
         
-        # Save best result
-        output_path = Path(f"storage/transcripts/{meeting_id}_optimized.json")
+        # Save best result - update path to go up one level
+        output_path = Path(__file__).parent.parent / f"storage/transcripts/{meeting_id}_optimized.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
         with open(output_path, "w", encoding="utf-8") as f:

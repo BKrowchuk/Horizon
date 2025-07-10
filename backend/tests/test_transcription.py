@@ -4,7 +4,11 @@ Test script for the transcription pipeline
 """
 import requests
 import json
+import sys
 from pathlib import Path
+
+# Add the parent directory to the path so we can import from the backend modules
+sys.path.append(str(Path(__file__).parent.parent))
 
 def test_transcription():
     """Test the transcription endpoint"""
@@ -12,8 +16,8 @@ def test_transcription():
     # Test data
     meeting_id = "c49ddc0a-1017-4216-83f6-8128de7c5a88"
     
-    # Check if audio file exists
-    audio_path = Path(f"storage/audio/{meeting_id}_audio.mp3")
+    # Check if audio file exists - update path to go up one level
+    audio_path = Path(__file__).parent.parent / f"storage/audio/{meeting_id}_audio.mp3"
     if not audio_path.exists():
         print(f"❌ Audio file not found: {audio_path}")
         return False
@@ -37,8 +41,8 @@ def test_transcription():
             print("✅ Transcription successful!")
             print(f"📄 Response data: {json.dumps(data, indent=2)}")
             
-            # Check if transcript file was created
-            transcript_path = Path(f"storage/transcripts/{meeting_id}.json")
+            # Check if transcript file was created - update path to go up one level
+            transcript_path = Path(__file__).parent.parent / f"storage/transcripts/{meeting_id}.json"
             if transcript_path.exists():
                 print(f"✅ Transcript file created: {transcript_path}")
                 return True
