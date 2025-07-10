@@ -129,12 +129,12 @@ if __name__ == "__main__":
     # Test with the existing meeting ID
     meeting_id = "bbd45fb8-a2a9-4708-b929-a9acb2fda37e"
     
-    print("🔍 Audio Analysis and Transcription Test")
+    print("Audio Analysis and Transcription Test")
     print("=" * 50)
     
     success = test_transcription_with_analysis(meeting_id)
     
     if success:
-        print("\n🎉 Analysis completed successfully!")
+        print("\nAnalysis completed successfully!")
     else:
-        print("\n💥 Analysis failed. Please check the implementation.") 
+        print("\nAnalysis failed. Please check the implementation.") 

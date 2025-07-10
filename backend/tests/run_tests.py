@@ -6,21 +6,39 @@ import sys
 import subprocess
 from pathlib import Path
 
+def check_server_running():
+    """Check if the server is running on localhost:8000"""
+    try:
+        import requests
+        response = requests.get("http://localhost:8000/docs", timeout=5)
+        return response.status_code == 200
+    except:
+        return False
+
 def run_all_tests():
     """Run all test files in the tests directory"""
     tests_dir = Path(__file__).parent
     test_files = list(tests_dir.glob("test_*.py"))
     
-    print(f"🧪 Running {len(test_files)} tests...")
+    # Filter out run_tests.py and count actual test files
+    actual_test_files = [f for f in sorted(test_files) if f.name != "run_tests.py"]
+    
+    # Check if server is running
+    print("Checking if server is running...")
+    if not check_server_running():
+        print("Server is not running on localhost:8000")
+        print("Please start the server with: python main.py")
+        return False
+    
+    print("Server is running!")
+    print(f"Running {len(actual_test_files)} tests...")
     print("=" * 50)
     
     results = []
     
-    for test_file in test_files:
-        if test_file.name == "run_tests.py":
-            continue
-            
-        print(f"\n📋 Running: {test_file.name}")
+    for test_file in actual_test_files:
+        
+        print(f"\nRunning: {test_file.name}")
         print("-" * 30)
         
         try:
@@ -33,11 +51,16 @@ def run_all_tests():
             )
             
             if result.returncode == 0:
-                print("✅ PASSED")
+                print("PASSED")
+                if result.stdout.strip():
+                    print(f"Output: {result.stdout.strip()}")
                 results.append((test_file.name, True, result.stdout))
             else:
-                print("❌ FAILED")
-                print(f"Error: {result.stderr}")
+                print("FAILED")
+                if result.stderr.strip():
+                    print(f"Error: {result.stderr.strip()}")
+                if result.stdout.strip():
+                    print(f"Output: {result.stdout.strip()}")
                 results.append((test_file.name, False, result.stderr))
                 
         except Exception as e:
@@ -53,16 +76,16 @@ def run_all_tests():
     total = len(results)
     
     for test_name, success, output in results:
-        status = "✅ PASSED" if success else "❌ FAILED"
+        status = "PASSED" if success else "FAILED"
         print(f"{test_name}: {status}")
     
-    print(f"\n🎯 Results: {passed}/{total} tests passed")
+    print(f"\nResults: {passed}/{total} tests passed")
     
     if passed == total:
-        print("🎉 All tests passed!")
+        print("All tests passed!")
         return True
     else:
-        print("💥 Some tests failed!")
+        print("Some tests failed!")
         return False
 
 if __name__ == "__main__":

@@ -1,72 +1,29 @@
 from fastapi import APIRouter, HTTPException
-from models.summarize import SummarizeRequest, SummarizeResponse
-from pathlib import Path
-import json
+from pydantic import BaseModel
+from typing import Dict, Any
+from agents.summary_agent import generate_summary
 
 router = APIRouter()
 
-@router.post("/summarize", response_model=SummarizeResponse, summary="Summarize transcribed text", tags=["summarize"])
-async def summarize_text(request: SummarizeRequest):
+class SummarizeRequest(BaseModel):
+    """Request model for summarization"""
+    meeting_id: str
+
+@router.post("/summarize", summary="Generate meeting summary", tags=["summarize"])
+async def summarize_meeting(request: SummarizeRequest) -> Dict[str, Any]:
     """
-    Summarize transcribed text
+    Generate a summary of a meeting transcript using OpenAI
     
-    - **request**: Summarize request with file_id
-    - **returns**: Summary response with key points and metrics
+    - **request**: Summarize request with meeting_id
+    - **returns**: Summary data with meeting_id, project_id, created_at, and summary
     """
     try:
-        # Check if transcript exists
-        transcript_path = Path(f"storage/transcripts/{request.file_id}.json")
-        if not transcript_path.exists():
-            raise HTTPException(status_code=404, detail="Transcript not found")
+        # Call the summary agent
+        summary_data = generate_summary(request.meeting_id)
         
-        # Load transcript
-        with open(transcript_path, "r") as f:
-            transcript_data = json.load(f)
+        return summary_data
         
-        # TODO: Implement actual summarization logic
-        # This is a placeholder for the summarization service
-        
-        # Create outputs directory
-        outputs_dir = Path("storage/outputs")
-        outputs_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Save summary result
-        summary_path = outputs_dir / f"{request.file_id}_summary.json"
-        summary_data = {
-            "file_id": request.file_id,
-            "summary": "This is a placeholder summary. Implement actual summarization logic.",
-            "key_points": ["Point 1", "Point 2", "Point 3"],
-            "word_count": len(transcript_data["transcript"].split()),
-            "summary_length": 150
-        }
-        
-        with open(summary_path, "w") as f:
-            json.dump(summary_data, f)
-        
-        return SummarizeResponse(
-            success=True,
-            file_id=request.file_id,
-            summary=summary_data["summary"],
-            key_points=summary_data["key_points"],
-            word_count=summary_data["word_count"],
-            summary_length=summary_data["summary_length"]
-        )
-    
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Summarization failed: {str(e)}")
-
-@router.get("/summarize/{file_id}", summary="Get summary for file", tags=["summarize"])
-async def get_summary(file_id: str):
-    """
-    Get the summary for a specific file
-    
-    - **file_id**: ID of the file to get summary for
-    - **returns**: Summary data for the file
-    """
-    summary_path = Path(f"storage/outputs/{file_id}_summary.json")
-    if summary_path.exists():
-        with open(summary_path, "r") as f:
-            data = json.load(f)
-        return data
-    else:
-        raise HTTPException(status_code=404, detail="Summary not found")

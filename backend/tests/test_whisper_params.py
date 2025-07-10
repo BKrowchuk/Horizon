@@ -87,7 +87,7 @@ def main():
     audio_file_path = Path(__file__).parent.parent / f"storage/audio/{meeting_id}_audio.mp3"
     
     if not audio_file_path.exists():
-        print(f"❌ Audio file not found: {audio_file_path}")
+        print(f"Audio file not found: {audio_file_path}")
         return
     
     print("🔍 Testing Whisper API Parameters")

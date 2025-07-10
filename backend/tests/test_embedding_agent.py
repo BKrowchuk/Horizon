@@ -51,16 +51,16 @@ def test_embedding_agent():
                 print(f"    Similarity Score: {result['similarity_score']:.4f}")
                 print(f"    Text: {result['text'][:150]}...")
         
-        print(f"\n✅ All tests passed! Embedding agent is working correctly.")
+        print(f"\nAll tests passed! Embedding agent is working correctly.")
         
     except Exception as e:
-        print(f"❌ Test failed: {str(e)}")
+        print(f"Test failed: {str(e)}")
         raise
 
 if __name__ == "__main__":
     # Check if OpenAI API key is set
     if not os.getenv("OPENAI_API_KEY"):
-        print("❌ OPENAI_API_KEY environment variable not set!")
+        print("OPENAI_API_KEY environment variable not set!")
         print("Please set your OpenAI API key before running this test.")
         exit(1)
     
