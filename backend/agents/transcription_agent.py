@@ -1,10 +1,18 @@
 import openai
 import json
+import os
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any
+from dotenv import load_dotenv
 
-def transcribe_audio_file(meeting_id: str) -> str:
+# Load environment variables
+load_dotenv()
+
+# Configure OpenAI API key
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+def transcribe_audio_file(meeting_id: str) -> Dict[str, Any]:
     """
     Transcribe an audio file using OpenAI's Whisper API
     
@@ -12,7 +20,7 @@ def transcribe_audio_file(meeting_id: str) -> str:
         meeting_id (str): The meeting ID to transcribe
         
     Returns:
-        str: Path to the saved transcript file
+        Dict[str, Any]: Transcript data with meeting_id, project_id, created_at, and transcript
     """
     # Construct file paths
     audio_file_path = Path(f"storage/audio/{meeting_id}_audio.mp3")
@@ -46,7 +54,7 @@ def transcribe_audio_file(meeting_id: str) -> str:
         with open(transcript_file_path, "w", encoding="utf-8") as f:
             json.dump(transcript_data, f, indent=2, ensure_ascii=False)
         
-        return str(transcript_file_path)
+        return transcript_data
         
     except Exception as e:
         raise Exception(f"Transcription failed: {str(e)}") 
