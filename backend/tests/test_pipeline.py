@@ -49,6 +49,9 @@ def test_pipeline_endpoint():
     
     # Test flowchart generation for both formats
     test_flowchart_generation(meeting_id)
+    
+    # Test query functionality
+    test_query_functionality(meeting_id)
 
 def test_flowchart_generation(meeting_id: str):
     """Test flowchart generation for both mermaid and interactive formats"""
@@ -111,6 +114,73 @@ def test_flowchart_generation(meeting_id: str):
     assert Path(f"storage/outputs/{meeting_id}_flowchart.json").exists()
     
     print("✓ Flowchart generation tests completed successfully!")
+
+def test_query_functionality(meeting_id: str):
+    """Test query functionality with sample questions"""
+    
+    print(f"\n=== Testing Query Functionality for meeting_id: {meeting_id} ===")
+    
+    # Test first query: "What were the main topics discussed?"
+    print("\n--- Testing Query 1: Main Topics ---")
+    query1_response = client.post("/api/v1/query/query", json={
+        "meeting_id": meeting_id,
+        "query": "What were the main topics discussed?"
+    })
+    
+    assert query1_response.status_code == 200
+    query1_data = query1_response.json()
+    
+    # Verify query1 response structure
+    assert query1_data["meeting_id"] == meeting_id
+    assert query1_data["query"] == "What were the main topics discussed?"
+    assert "answer" in query1_data
+    assert "sources" in query1_data
+    assert "timestamp" in query1_data
+    assert isinstance(query1_data["sources"], list)
+    
+    # Display query1 results
+    print(f"Query 1 Answer: {query1_data['answer'][:200]}...")
+    print(f"Query 1 Sources: {len(query1_data['sources'])} sources found")
+    for i, source in enumerate(query1_data['sources'][:2]):  # Show first 2 sources
+        print(f"  Source {i+1}: Score {source['similarity_score']:.3f}, Preview: {source['text_preview'][:100]}...")
+    
+    # Test second query: "What action items were mentioned?"
+    print("\n--- Testing Query 2: Action Items ---")
+    query2_response = client.post("/api/v1/query/query", json={
+        "meeting_id": meeting_id,
+        "query": "What action items were mentioned?"
+    })
+    
+    assert query2_response.status_code == 200
+    query2_data = query2_response.json()
+    
+    # Verify query2 response structure
+    assert query2_data["meeting_id"] == meeting_id
+    assert query2_data["query"] == "What action items were mentioned?"
+    assert "answer" in query2_data
+    assert "sources" in query2_data
+    assert "timestamp" in query2_data
+    assert isinstance(query2_data["sources"], list)
+    
+    # Display query2 results
+    print(f"Query 2 Answer: {query2_data['answer'][:200]}...")
+    print(f"Query 2 Sources: {len(query2_data['sources'])} sources found")
+    for i, source in enumerate(query2_data['sources'][:2]):  # Show first 2 sources
+        print(f"  Source {i+1}: Score {source['similarity_score']:.3f}, Preview: {source['text_preview'][:100]}...")
+    
+    # Verify query history file was created
+    queries_file_path = Path(f"storage/outputs/{meeting_id}_queries.json")
+    assert queries_file_path.exists()
+    
+    # Load and verify query history
+    with open(queries_file_path, "r", encoding="utf-8") as f:
+        queries_data = json.load(f)
+    
+    assert len(queries_data) >= 2
+    assert queries_data[0]["query"] == "What were the main topics discussed?"
+    assert queries_data[1]["query"] == "What action items were mentioned?"
+    
+    print("✓ Query functionality tests completed successfully!")
 
 def test_pipeline_status_endpoint():
     """Test the pipeline status endpoint"""
@@ -182,6 +252,28 @@ def test_flowchart_nonexistent_meeting():
     
     assert response.status_code == 404
     assert "Transcript not found" in response.json()["detail"]
+
+def test_query_invalid_meeting():
+    """Test query with non-existent meeting"""
+    
+    response = client.post("/api/v1/query/query", json={
+        "meeting_id": "nonexistent_meeting",
+        "query": "What were the main topics?"
+    })
+    
+    assert response.status_code == 404
+    assert "Meeting or vector index not found" in response.json()["detail"]
+
+def test_query_empty_query():
+    """Test query with empty query string"""
+    
+    response = client.post("/api/v1/query/query", json={
+        "meeting_id": "test_meeting",
+        "query": ""
+    })
+    
+    assert response.status_code == 400
+    assert "Query cannot be empty" in response.json()["detail"]
 
 if __name__ == "__main__":
     # Run tests
