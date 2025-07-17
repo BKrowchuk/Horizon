@@ -14,6 +14,7 @@ from test_upload import test_upload, test_upload_invalid_file
 from test_transcription import test_transcription
 from test_embedding_agent import test_embedding_agent
 from test_summary_agent import test_summary_generation, test_summary_agent_direct
+from agents.insights_agent import generate_insights
 
 def check_server_running():
     """Check if the server is running on localhost:8000"""
@@ -142,6 +143,24 @@ def run_pipeline_tests():
             files_to_cleanup.append(summary_data["summary_path"])
         if summary_direct_data:
             files_to_cleanup.append(summary_direct_data["summary_path"])
+        
+        # Test 5: Insights Generation
+        print("\n" + "=" * 50)
+        print("[TEST] 5. Testing Insights Generation Pipeline")
+        print("=" * 50)
+        try:
+            insights_data = generate_insights(transcription_data["meeting_id"])
+            insights_path = Path(__file__).parent.parent / f"storage/outputs/{transcription_data['meeting_id']}_insights.json"
+            if insights_path.exists():
+                print(f"[OK] Insights file created: {insights_path}")
+                test_results.append(("Insights", True))
+                files_to_cleanup.append(insights_path)
+            else:
+                print(f"[ERROR] Insights file not found: {insights_path}")
+                test_results.append(("Insights", False))
+        except Exception as e:
+            print(f"[ERROR] Insights generation failed: {str(e)}")
+            test_results.append(("Insights", False))
         
         # All tests passed!
         print("\n" + "=" * 50)

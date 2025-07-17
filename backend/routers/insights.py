@@ -1,63 +1,40 @@
 from fastapi import APIRouter, HTTPException
-from models.insights import InsightsRequest, InsightsResponse
+from pydantic import BaseModel
+from typing import Dict, Any
 from pathlib import Path
 import json
+from agents.insights_agent import generate_insights
 
 router = APIRouter()
 
-@router.post("/insights", response_model=InsightsResponse, summary="Generate insights from content", tags=["insights"])
-async def generate_insights(request: InsightsRequest):
+class InsightsRequest(BaseModel):
+    """Request model for insights generation"""
+    file_id: str  # Using file_id to match existing model pattern
+
+@router.post("/insights", summary="Generate meeting insights with audio analysis", tags=["insights"])
+async def generate_meeting_insights(request: InsightsRequest) -> Dict[str, Any]:
     """
-    Generate insights from transcribed content
+    Generate insights from a meeting transcript and audio recording using OpenAI
     
     - **request**: Insights request with file_id
-    - **returns**: Insights response with sentiment, topics, and entities
+    - **returns**: Insights data with meeting_id, project_id, created_at, insights, and important_moments
     """
     try:
-        # Check if transcript exists
-        transcript_path = Path(f"storage/transcripts/{request.file_id}.json")
-        if not transcript_path.exists():
-            raise HTTPException(status_code=404, detail="Transcript not found")
+        # Construct audio file path
+        backend_dir = Path(__file__).parent.parent
+        audio_file_path = backend_dir / f"storage/audio/{request.file_id}_audio.m4a"
         
-        # Load transcript
-        with open(transcript_path, "r") as f:
-            transcript_data = json.load(f)
+        # Call the insights agent with audio file if it exists
+        if audio_file_path.exists():
+            insights_data = generate_insights(request.file_id, str(audio_file_path))
+        else:
+            # Fall back to transcript-only analysis
+            insights_data = generate_insights(request.file_id)
         
-        # TODO: Implement actual insights generation logic
-        # This is a placeholder for the insights service
+        return insights_data
         
-        # Create outputs directory
-        outputs_dir = Path("storage/outputs")
-        outputs_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Save insights result
-        insights_path = outputs_dir / f"{request.file_id}_insights.json"
-        insights_data = {
-            "file_id": request.file_id,
-            "sentiment": "positive",
-            "topics": ["technology", "innovation", "business"],
-            "entities": ["AI", "machine learning", "startup"],
-            "key_phrases": ["artificial intelligence", "digital transformation"],
-            "confidence_scores": {
-                "sentiment": 0.85,
-                "topic_detection": 0.92,
-                "entity_recognition": 0.88
-            }
-        }
-        
-        with open(insights_path, "w") as f:
-            json.dump(insights_data, f)
-        
-        return InsightsResponse(
-            success=True,
-            file_id=request.file_id,
-            sentiment=insights_data["sentiment"],
-            topics=insights_data["topics"],
-            entities=insights_data["entities"],
-            key_phrases=insights_data["key_phrases"],
-            confidence_scores=insights_data["confidence_scores"]
-        )
-    
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Insights generation failed: {str(e)}")
 

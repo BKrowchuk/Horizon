@@ -34,10 +34,13 @@ async def upload_file(file: UploadFile = File(...)):
         # Generate meeting ID
         meeting_id = str(uuid.uuid4())
         
-        # Get file extension
+        # Get file extension - preserve original extension if valid
         original_filename = file.filename or "audio"
         file_extension = Path(original_filename).suffix.lower()
-        if not file_extension or file_extension not in ['.mp3', '.wav']:
+        supported_extensions = ['.mp3', '.wav', '.m4a', '.flac', '.ogg', '.aac', '.mp4', '.mpeg', '.mpga', '.oga', '.webm']
+        
+        # Only default to mp3 if extension is missing or unsupported
+        if not file_extension or file_extension not in supported_extensions:
             file_extension = '.mp3'  # Default to mp3 if no valid extension
         
         # Create filename with meeting ID prefix and _audio suffix to match transcription agent

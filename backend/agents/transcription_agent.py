@@ -29,13 +29,23 @@ def transcribe_audio_file(meeting_id: str) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: Transcript data with meeting_id, project_id, created_at, and transcript
     """
-    # Construct file paths
-    audio_file_path = Path(f"storage/audio/{meeting_id}_audio.mp3")
+    # Construct file paths - try different audio extensions
+    audio_dir = Path("storage/audio")
     transcript_file_path = Path(f"storage/transcripts/{meeting_id}.json")
     
+    # Look for the audio file with any supported extension
+    audio_file_path = None
+    supported_extensions = ['.mp3', '.wav', '.m4a', '.flac', '.ogg', '.aac', '.mp4', '.mpeg', '.mpga', '.oga', '.webm']
+    
+    for ext in supported_extensions:
+        potential_path = audio_dir / f"{meeting_id}_audio{ext}"
+        if potential_path.exists():
+            audio_file_path = potential_path
+            break
+    
     # Check if audio file exists
-    if not audio_file_path.exists():
-        raise FileNotFoundError(f"Audio file not found: {audio_file_path}")
+    if not audio_file_path:
+        raise FileNotFoundError(f"Audio file not found for meeting_id: {meeting_id}")
     
     # Create transcripts directory if it doesn't exist
     transcript_file_path.parent.mkdir(parents=True, exist_ok=True)

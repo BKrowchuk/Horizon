@@ -210,6 +210,114 @@ curl -X POST "http://localhost:8000/api/v1/embedding/search" \
   }'
 ```
 
+## 8. Pipeline Processing (Complete Workflow)
+
+Process an audio file through the entire pipeline in one request.
+
+### Synchronous Processing
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/pipeline/process-sync" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@RiverKiller.mp3"
+```
+
+**Response Example:**
+
+```json
+{
+  "meeting_id": "abc123-def456-7890-ghij-klmnopqrstuv",
+  "filename": "abc123-def456-7890-ghij-klmnopqrstuv_audio.mp3",
+  "status": "completed",
+  "steps_completed": ["upload", "transcribe", "summarize", "embed"],
+  "transcript": {
+    "meeting_id": "abc123-def456-7890-ghij-klmnopqrstuv",
+    "project_id": "demo_project",
+    "created_at": "2024-01-01T12:00:00Z",
+    "transcript": "Transcribed text content...",
+    "original_length": 1000,
+    "cleaned_length": 950,
+    "whisper_params": {
+      "language": "en",
+      "temperature": 0.0,
+      "prompt": "This is a song or music recording. Transcribe the lyrics accurately."
+    }
+  },
+  "summary": {
+    "meeting_id": "abc123-def456-7890-ghij-klmnopqrstuv",
+    "project_id": "demo_project",
+    "created_at": "2024-01-01T12:05:00Z",
+    "summary": "Generated summary content..."
+  },
+  "embedding": {
+    "meeting_id": "abc123-def456-7890-ghij-klmnopqrstuv",
+    "num_chunks": 5,
+    "vector_index_path": "storage/vectors/abc123-def456-7890-ghij-klmnopqrstuv.index",
+    "meta_path": "storage/vectors/abc123-def456-7890-ghij-klmnopqrstuv_meta.json"
+  }
+}
+```
+
+### Asynchronous Processing
+
+```bash
+# Start processing
+curl -X POST "http://localhost:8000/api/v1/pipeline/process" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@RiverKiller.mp3"
+```
+
+**Response Example:**
+
+```json
+{
+  "meeting_id": "abc123-def456-7890-ghij-klmnopqrstuv",
+  "filename": "abc123-def456-7890-ghij-klmnopqrstuv_audio.mp3",
+  "status": "processing",
+  "steps_completed": ["upload"]
+}
+```
+
+### Check Pipeline Status
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/pipeline/status/abc123-def456-7890-ghij-klmnopqrstuv"
+```
+
+**Response Example:**
+
+```json
+{
+  "meeting_id": "abc123-def456-7890-ghij-klmnopqrstuv",
+  "status": "completed",
+  "steps_completed": ["upload", "transcribe", "summarize", "embed"],
+  "progress": {
+    "upload": { "status": "completed" },
+    "transcribe": {
+      "status": "completed",
+      "data": {
+        "created_at": "2024-01-01T12:00:00Z",
+        "transcript_length": 1000
+      }
+    },
+    "summarize": {
+      "status": "completed",
+      "data": {
+        "created_at": "2024-01-01T12:05:00Z",
+        "summary_length": 200
+      }
+    },
+    "embed": {
+      "status": "completed",
+      "data": {
+        "num_chunks": 5,
+        "embedding_model": "text-embedding-ada-002"
+      }
+    }
+  }
+}
+```
+
 ## Notes
 
 - Replace `your-meeting-id-here` with the actual `meeting_id` returned from the upload step
@@ -217,3 +325,6 @@ curl -X POST "http://localhost:8000/api/v1/embedding/search" \
 - All audio files should be in supported formats: mp3, wav, m4a, flac, ogg, aac
 - The `meeting_id` is a UUID that links all operations for the same audio file
 - Each step depends on the previous step being completed successfully
+- The pipeline endpoint processes files through all steps automatically
+- Use synchronous processing for small files and immediate results
+- Use asynchronous processing for large files and background processing
