@@ -1,10 +1,19 @@
 #!/usr/bin/env python3
 """
-Test runner for all tests in the tests directory
+Test orchestrator for the Horizon backend pipeline
 """
 import sys
-import subprocess
+import os
 from pathlib import Path
+
+# Add the parent directory to the path so we can import from the backend modules
+sys.path.append(str(Path(__file__).parent.parent))
+
+# Import test functions
+from test_upload import test_upload, test_upload_invalid_file
+from test_transcription import test_transcription
+from test_embedding_agent import test_embedding_agent
+from test_summary_agent import test_summary_generation, test_summary_agent_direct
 
 def check_server_running():
     """Check if the server is running on localhost:8000"""
@@ -15,79 +24,147 @@ def check_server_running():
     except:
         return False
 
-def run_all_tests():
-    """Run all test files in the tests directory"""
-    tests_dir = Path(__file__).parent
-    test_files = list(tests_dir.glob("test_*.py"))
+def cleanup_files(files_to_cleanup):
+    """Clean up files created during testing"""
+    print("\n" + "=" * 50)
+    print("[CLEANUP] Cleaning up test files...")
+    print("=" * 50)
     
-    # Filter out run_tests.py and count actual test files
-    actual_test_files = [f for f in sorted(test_files) if f.name != "run_tests.py"]
+    for file_path in files_to_cleanup:
+        if file_path and file_path.exists():
+            try:
+                file_path.unlink()
+                print(f"[CLEANUP] Deleted: {file_path}")
+            except Exception as e:
+                print(f"[WARNING] Failed to delete {file_path}: {str(e)}")
+
+def run_pipeline_tests():
+    """Run the complete pipeline test suite in order"""
+    
+    print("Horizon Backend Pipeline Test Suite")
+    print("=" * 50)
     
     # Check if server is running
     print("Checking if server is running...")
     if not check_server_running():
-        print("Server is not running on localhost:8000")
-        print("Please start the server with: python main.py")
+        print("[ERROR] Server is not running on localhost:8000")
+        print("[INFO] Please start the server with: python main.py")
         return False
     
-    print("Server is running!")
-    print(f"Running {len(actual_test_files)} tests...")
-    print("=" * 50)
+    print("[OK] Server is running!")
     
-    results = []
+    # Check if OpenAI API key is set (needed for embedding and summary)
+    if not os.getenv("OPENAI_API_KEY"):
+        print("[ERROR] OPENAI_API_KEY environment variable not set!")
+        print("[INFO] Please set your OpenAI API key before running this test.")
+        return False
     
-    for test_file in actual_test_files:
+    print("[OK] OpenAI API key is set!")
+    
+    # Track files to cleanup
+    files_to_cleanup = []
+    test_results = []
+    
+    try:
+        # Test 1: Upload
+        print("\n" + "=" * 50)
+        print("[TEST] 1. Testing Upload Pipeline")
+        print("=" * 50)
         
-        print(f"\nRunning: {test_file.name}")
-        print("-" * 30)
+        success, upload_data = test_upload()
+        test_results.append(("Upload", success))
         
-        try:
-            # Run the test file
-            result = subprocess.run(
-                [sys.executable, str(test_file)],
-                capture_output=True,
-                text=True,
-                cwd=tests_dir.parent  # Run from backend directory
-            )
-            
-            if result.returncode == 0:
-                print("PASSED")
-                if result.stdout.strip():
-                    print(f"Output: {result.stdout.strip()}")
-                results.append((test_file.name, True, result.stdout))
-            else:
-                print("FAILED")
-                if result.stderr.strip():
-                    print(f"Error: {result.stderr.strip()}")
-                if result.stdout.strip():
-                    print(f"Output: {result.stdout.strip()}")
-                results.append((test_file.name, False, result.stderr))
-                
-        except Exception as e:
-            print(f"❌ ERROR: {str(e)}")
-            results.append((test_file.name, False, str(e)))
-    
-    # Summary
-    print("\n" + "=" * 50)
-    print("📊 TEST SUMMARY")
-    print("=" * 50)
-    
-    passed = sum(1 for _, success, _ in results if success)
-    total = len(results)
-    
-    for test_name, success, output in results:
-        status = "PASSED" if success else "FAILED"
-        print(f"{test_name}: {status}")
-    
-    print(f"\nResults: {passed}/{total} tests passed")
-    
-    if passed == total:
-        print("All tests passed!")
+        if not success:
+            print("[ERROR] Upload test failed!")
+            return False
+        
+        # Test invalid upload
+        success_invalid, _ = test_upload_invalid_file()
+        test_results.append(("Upload (Invalid)", success_invalid))
+        
+        if upload_data:
+            files_to_cleanup.append(upload_data["file_path"])
+        
+        # Test 2: Transcription
+        print("\n" + "=" * 50)
+        print("[TEST] 2. Testing Transcription Pipeline")
+        print("=" * 50)
+        
+        success, transcription_data = test_transcription(upload_data["meeting_id"])
+        test_results.append(("Transcription", success))
+        
+        if not success:
+            print("[ERROR] Transcription test failed!")
+            return False
+        
+        if transcription_data:
+            files_to_cleanup.append(transcription_data["transcript_path"])
+            # Also cleanup the uploaded file from transcription test
+            if transcription_data["uploaded_filename"]:
+                uploaded_file_path = Path(__file__).parent.parent / f"storage/audio/{transcription_data['uploaded_filename']}"
+                files_to_cleanup.append(uploaded_file_path)
+        
+        # Test 3: Embedding
+        print("\n" + "=" * 50)
+        print("[TEST] 3. Testing Embedding Pipeline")
+        print("=" * 50)
+        
+        success, embedding_data = test_embedding_agent(transcription_data["meeting_id"])
+        test_results.append(("Embedding", success))
+        
+        if not success:
+            print("[ERROR] Embedding test failed!")
+            return False
+        
+        if embedding_data:
+            files_to_cleanup.append(embedding_data["vector_file_path"])
+        
+        # Test 4: Summary Generation
+        print("\n" + "=" * 50)
+        print("[TEST] 4. Testing Summary Generation Pipeline")
+        print("=" * 50)
+        
+        # Test API endpoint
+        success, summary_data = test_summary_generation(transcription_data["meeting_id"])
+        test_results.append(("Summary (API)", success))
+        
+        if not success:
+            print("[ERROR] Summary API test failed!")
+            return False
+        
+        # Test direct agent
+        success_direct, summary_direct_data = test_summary_agent_direct(transcription_data["meeting_id"])
+        test_results.append(("Summary (Direct)", success_direct))
+        
+        if not success_direct:
+            print("[ERROR] Summary direct test failed!")
+            return False
+        
+        if summary_data:
+            files_to_cleanup.append(summary_data["summary_path"])
+        if summary_direct_data:
+            files_to_cleanup.append(summary_direct_data["summary_path"])
+        
+        # All tests passed!
+        print("\n" + "=" * 50)
+        print("[SUCCESS] All Pipeline Tests Passed!")
+        print("=" * 50)
+        
+        for test_name, success in test_results:
+            status = "PASSED" if success else "FAILED"
+            print(f"{test_name}: {status}")
+        
+        print(f"\n[STATS] Results: {sum(1 for _, success in test_results if success)}/{len(test_results)} tests passed")
         return True
-    else:
-        print("Some tests failed!")
+        
+    except Exception as e:
+        print(f"[ERROR] Test suite failed with exception: {str(e)}")
         return False
+    
+    finally:
+        # Cleanup all files
+        cleanup_files(files_to_cleanup)
 
 if __name__ == "__main__":
-    success = run_all_tests()
+    success = run_pipeline_tests()
     sys.exit(0 if success else 1) 

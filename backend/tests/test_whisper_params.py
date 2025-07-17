@@ -22,8 +22,8 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 def test_whisper_parameters(audio_file_path: str, test_name: str, **params):
     """Test Whisper API with different parameters"""
     
-    print(f"\n🧪 Testing: {test_name}")
-    print(f"📋 Parameters: {params}")
+    print(f"\n[TEST] Testing: {test_name}")
+    print(f"[PARAMS] Parameters: {params}")
     
     try:
         with open(audio_file_path, "rb") as audio_file:
@@ -42,11 +42,11 @@ def test_whisper_parameters(audio_file_path: str, test_name: str, **params):
         cleaned_length = len(cleaned_transcript)
         reduction = original_length - cleaned_length
         
-        print(f"✅ Success!")
-        print(f"📝 Original length: {original_length} chars")
-        print(f"📝 Cleaned length: {cleaned_length} chars")
-        print(f"🧹 Reduction: {reduction} chars ({reduction/original_length*100:.1f}%)")
-        print(f"📄 Preview: {cleaned_transcript[:150]}...")
+        print(f"[OK] Success!")
+        print(f"[TEXT] Original length: {original_length} chars")
+        print(f"[TEXT] Cleaned length: {cleaned_length} chars")
+        print(f"[CLEAN] Reduction: {reduction} chars ({reduction/original_length*100:.1f}%)")
+        print(f"[PREVIEW] Preview: {cleaned_transcript[:150]}...")
         
         return {
             "test_name": test_name,
@@ -58,7 +58,7 @@ def test_whisper_parameters(audio_file_path: str, test_name: str, **params):
         }
         
     except Exception as e:
-        print(f"❌ Failed: {str(e)}")
+        print(f"[ERROR] Failed: {str(e)}")
         return None
 
 def clean_transcript(transcript: str) -> str:
@@ -90,9 +90,9 @@ def main():
         print(f"Audio file not found: {audio_file_path}")
         return
     
-    print("🔍 Testing Whisper API Parameters")
+    print("[ANALYZE] Testing Whisper API Parameters")
     print("=" * 50)
-    print(f"🎵 Audio file: {audio_file_path}")
+    print(f"[AUDIO] Audio file: {audio_file_path}")
     
     # Test configurations
     test_configs = [
@@ -150,9 +150,9 @@ def main():
     if results:
         best_result = min(results, key=lambda x: x["reduction"] / x["original_length"])
         
-        print(f"\n🏆 Best configuration: {best_result['test_name']}")
-        print(f"📊 Reduction rate: {best_result['reduction']/best_result['original_length']*100:.1f}%")
-        print(f"📝 Final transcript: {best_result['transcript']}")
+        print(f"\n[BEST] Best configuration: {best_result['test_name']}")
+        print(f"[STATS] Reduction rate: {best_result['reduction']/best_result['original_length']*100:.1f}%")
+        print(f"[TEXT] Final transcript: {best_result['transcript']}")
         
         # Save best result - update path to go up one level
         output_path = Path(__file__).parent.parent / f"storage/transcripts/{meeting_id}_optimized.json"
@@ -170,10 +170,10 @@ def main():
                 "reduction": best_result["reduction"]
             }, f, indent=2, ensure_ascii=False)
         
-        print(f"💾 Saved optimized transcript to: {output_path}")
+        print(f"[SAVE] Saved optimized transcript to: {output_path}")
     
     else:
-        print("❌ No successful tests completed")
+        print("[ERROR] No successful tests completed")
 
 if __name__ == "__main__":
     main() 
