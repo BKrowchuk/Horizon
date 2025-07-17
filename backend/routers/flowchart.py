@@ -1,95 +1,116 @@
 from fastapi import APIRouter, HTTPException
-from models.flowchart import FlowchartRequest, FlowchartResponse
-from pathlib import Path
-import json
+from pydantic import BaseModel
+from typing import Dict, Any, Optional
+import logging
+from agents.flowchart_agent import generate_flowchart
 
-router = APIRouter()
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-@router.post("/flowchart", response_model=FlowchartResponse, summary="Generate flowchart from content", tags=["flowchart"])
-async def generate_flowchart(request: FlowchartRequest):
+router = APIRouter(prefix="/flowchart", tags=["flowchart"])
+
+class FlowchartRequest(BaseModel):
+    meeting_id: str
+    format_type: str = "mermaid"  # default to mermaid
+
+class FlowchartResponse(BaseModel):
+    meeting_id: str
+    project_id: str
+    created_at: str
+    format_type: str
+    flowchart: Any  # Can be string (mermaid) or dict (interactive)
+    mermaid_flowchart: str  # Always includes mermaid version
+    render_info: Dict[str, Any]
+
+@router.post("/", response_model=FlowchartResponse, summary="Generate flowchart from meeting transcript", tags=["flowchart"])
+async def generate_flowchart_endpoint(request: FlowchartRequest):
     """
-    Generate a flowchart from content
+    Generate a flowchart from meeting transcript
     
-    - **request**: Flowchart request with file_id and flowchart type
-    - **returns**: Flowchart response with nodes, edges, and visualization data
+    - **meeting_id**: ID of the meeting to generate flowchart for
+    - **format_type**: Type of flowchart format ("mermaid" or "interactive")
+    - **returns**: Flowchart data with metadata
     """
     try:
-        # Check if transcript exists
-        transcript_path = Path(f"storage/transcripts/{request.file_id}.json")
-        if not transcript_path.exists():
-            raise HTTPException(status_code=404, detail="Transcript not found")
+        logger.info(f"Starting flowchart generation for meeting_id: {request.meeting_id}, format: {request.format_type}")
         
-        # Load transcript
-        with open(transcript_path, "r") as f:
-            transcript_data = json.load(f)
+        # Generate flowchart using the agent
+        result = generate_flowchart(request.meeting_id, request.format_type)
         
-        # TODO: Implement actual flowchart generation logic
-        # This is a placeholder for the flowchart service
+        logger.info(f"Flowchart generation completed for meeting_id: {request.meeting_id}")
         
-        # Create outputs directory
-        outputs_dir = Path("storage/outputs")
-        outputs_dir.mkdir(parents=True, exist_ok=True)
+        return FlowchartResponse(**result)
         
-        # Save flowchart result
-        flowchart_path = outputs_dir / f"{request.file_id}_flowchart.json"
-        flowchart_data = {
-            "file_id": request.file_id,
-            "flowchart_type": request.flowchart_type,
-            "nodes": [
-                {"id": "1", "label": "Start", "type": "start"},
-                {"id": "2", "label": "Process", "type": "process"},
-                {"id": "3", "label": "Decision", "type": "decision"},
-                {"id": "4", "label": "End", "type": "end"}
-            ],
-            "edges": [
-                {"from": "1", "to": "2", "label": "Next"},
-                {"from": "2", "to": "3", "label": "Check"},
-                {"from": "3", "to": "4", "label": "Complete"}
-            ],
-            "svg_data": "<svg>...</svg>",
-            "png_url": f"/api/v1/flowchart/{request.file_id}/image"
-        }
+    except FileNotFoundError as e:
+        logger.error(f"Transcript not found for meeting_id {request.meeting_id}: {str(e)}")
+        raise HTTPException(status_code=404, detail=f"Transcript not found: {str(e)}")
         
-        with open(flowchart_path, "w") as f:
-            json.dump(flowchart_data, f)
+    except ValueError as e:
+        logger.error(f"Invalid request for meeting_id {request.meeting_id}: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
         
-        return FlowchartResponse(
-            success=True,
-            file_id=request.file_id,
-            flowchart_type=flowchart_data["flowchart_type"],
-            nodes=flowchart_data["nodes"],
-            edges=flowchart_data["edges"],
-            svg_data=flowchart_data["svg_data"],
-            png_url=flowchart_data["png_url"]
-        )
-    
     except Exception as e:
+        logger.error(f"Flowchart generation failed for meeting_id {request.meeting_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Flowchart generation failed: {str(e)}")
 
-@router.get("/flowchart/{file_id}", summary="Get flowchart for file", tags=["flowchart"])
-async def get_flowchart(file_id: str):
+@router.get("/{meeting_id}", summary="Get flowchart for meeting", tags=["flowchart"])
+async def get_flowchart(meeting_id: str):
     """
-    Get flowchart for a specific file
+    Get flowchart for a specific meeting
     
-    - **file_id**: ID of the file to get flowchart for
-    - **returns**: Flowchart data for the file
+    - **meeting_id**: ID of the meeting to get flowchart for
+    - **returns**: Flowchart data for the meeting
     """
-    flowchart_path = Path(f"storage/outputs/{file_id}_flowchart.json")
+    from pathlib import Path
+    import json
+    
+    flowchart_path = Path(f"storage/outputs/{meeting_id}_flowchart.json")
     if flowchart_path.exists():
-        with open(flowchart_path, "r") as f:
-            data = json.load(f)
-        return data
+        try:
+            with open(flowchart_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data
+        except Exception as e:
+            logger.error(f"Error reading flowchart for meeting_id {meeting_id}: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error reading flowchart: {str(e)}")
     else:
         raise HTTPException(status_code=404, detail="Flowchart not found")
 
-@router.get("/flowchart/{file_id}/image", summary="Get flowchart as image", tags=["flowchart"])
-async def get_flowchart_image(file_id: str):
+@router.get("/{meeting_id}/status", summary="Get flowchart status for meeting", tags=["flowchart"])
+async def get_flowchart_status(meeting_id: str):
     """
-    Get flowchart as image
+    Check if flowchart exists for a meeting
     
-    - **file_id**: ID of the file to get flowchart image for
-    - **returns**: Flowchart image data
+    - **meeting_id**: ID of the meeting to check
+    - **returns**: Status information about the flowchart
     """
-    # TODO: Implement image generation and serving
-    # This is a placeholder
-    return {"message": "Image generation not implemented yet"}
+    from pathlib import Path
+    import json
+    
+    flowchart_path = Path(f"storage/outputs/{meeting_id}_flowchart.json")
+    
+    if flowchart_path.exists():
+        try:
+            with open(flowchart_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            
+            return {
+                "meeting_id": meeting_id,
+                "status": "exists",
+                "format_type": data.get("format_type"),
+                "created_at": data.get("created_at"),
+                "project_id": data.get("project_id")
+            }
+        except Exception as e:
+            logger.error(f"Error reading flowchart status for meeting_id {meeting_id}: {str(e)}")
+            return {
+                "meeting_id": meeting_id,
+                "status": "exists",
+                "error": "Could not read metadata"
+            }
+    else:
+        return {
+            "meeting_id": meeting_id,
+            "status": "not_found"
+        }

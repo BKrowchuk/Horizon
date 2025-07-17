@@ -46,6 +46,71 @@ def test_pipeline_endpoint():
     assert Path(f"storage/outputs/{meeting_id}_summary.json").exists()
     assert Path(f"storage/vectors/{meeting_id}.index").exists()
     assert Path(f"storage/vectors/{meeting_id}_meta.json").exists()
+    
+    # Test flowchart generation for both formats
+    test_flowchart_generation(meeting_id)
+
+def test_flowchart_generation(meeting_id: str):
+    """Test flowchart generation for both mermaid and interactive formats"""
+    
+    print(f"\n=== Testing Flowchart Generation for meeting_id: {meeting_id} ===")
+    
+    # Test Mermaid flowchart generation
+    print("\n--- Testing Mermaid Flowchart ---")
+    mermaid_response = client.post("/api/v1/flowchart/", json={
+        "meeting_id": meeting_id,
+        "format_type": "mermaid"
+    })
+    
+    assert mermaid_response.status_code == 200
+    mermaid_data = mermaid_response.json()
+    
+    # Verify mermaid response structure
+    assert mermaid_data["meeting_id"] == meeting_id
+    assert mermaid_data["format_type"] == "mermaid"
+    assert "flowchart" in mermaid_data
+    assert "mermaid_flowchart" in mermaid_data
+    assert isinstance(mermaid_data["flowchart"], str)
+    assert isinstance(mermaid_data["mermaid_flowchart"], str)
+    assert mermaid_data["flowchart"].startswith("flowchart TD")
+    assert mermaid_data["mermaid_flowchart"].startswith("flowchart TD")
+    
+    # Display mermaid flowchart (truncated)
+    mermaid_flowchart = mermaid_data["flowchart"]
+    print(f"Mermaid Flowchart (first 200 chars): {mermaid_flowchart[:200]}...")
+    
+    # Test Interactive flowchart generation
+    print("\n--- Testing Interactive Flowchart ---")
+    interactive_response = client.post("/api/v1/flowchart/", json={
+        "meeting_id": meeting_id,
+        "format_type": "interactive"
+    })
+    
+    assert interactive_response.status_code == 200
+    interactive_data = interactive_response.json()
+    
+    # Verify interactive response structure
+    assert interactive_data["meeting_id"] == meeting_id
+    assert interactive_data["format_type"] == "interactive"
+    assert "flowchart" in interactive_data
+    assert "mermaid_flowchart" in interactive_data
+    assert isinstance(interactive_data["flowchart"], dict)
+    assert isinstance(interactive_data["mermaid_flowchart"], str)
+    assert "nodes" in interactive_data["flowchart"]
+    assert "connections" in interactive_data["flowchart"]
+    assert interactive_data["mermaid_flowchart"].startswith("flowchart TD")
+    
+    # Display interactive flowchart structure
+    nodes = interactive_data["flowchart"]["nodes"]
+    connections = interactive_data["flowchart"]["connections"]
+    print(f"Interactive Flowchart - Nodes: {len(nodes)}, Connections: {len(connections)}")
+    print(f"First node: {nodes[0] if nodes else 'No nodes'}")
+    print(f"Interactive also includes Mermaid (first 100 chars): {interactive_data['mermaid_flowchart'][:100]}...")
+    
+    # Verify flowchart files were created
+    assert Path(f"storage/outputs/{meeting_id}_flowchart.json").exists()
+    
+    print("✓ Flowchart generation tests completed successfully!")
 
 def test_pipeline_status_endpoint():
     """Test the pipeline status endpoint"""
@@ -82,6 +147,41 @@ def test_pipeline_invalid_file():
     
     assert response.status_code == 400
     assert "File must be an audio file" in response.json()["detail"]
+
+def test_flowchart_invalid_format():
+    """Test flowchart generation with invalid format type"""
+    
+    # First, process a file to get a meeting_id
+    test_audio_path = Path("tests/RiverKiller.mp3")
+    if not test_audio_path.exists():
+        pytest.skip("Test audio file not found")
+    
+    with open(test_audio_path, "rb") as audio_file:
+        files = {"file": ("RiverKiller.mp3", audio_file, "audio/mpeg")}
+        response = client.post("/api/v1/pipeline/process-sync", files=files)
+    
+    assert response.status_code == 200
+    meeting_id = response.json()["meeting_id"]
+    
+    # Test with invalid format type
+    invalid_response = client.post("/api/v1/flowchart/", json={
+        "meeting_id": meeting_id,
+        "format_type": "invalid_format"
+    })
+    
+    assert invalid_response.status_code == 400
+    assert "format_type must be 'mermaid' or 'interactive'" in invalid_response.json()["detail"]
+
+def test_flowchart_nonexistent_meeting():
+    """Test flowchart generation with non-existent meeting"""
+    
+    response = client.post("/api/v1/flowchart/", json={
+        "meeting_id": "nonexistent_meeting",
+        "format_type": "mermaid"
+    })
+    
+    assert response.status_code == 404
+    assert "Transcript not found" in response.json()["detail"]
 
 if __name__ == "__main__":
     # Run tests
