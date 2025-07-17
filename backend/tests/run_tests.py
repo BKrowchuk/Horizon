@@ -99,10 +99,8 @@ def run_pipeline_tests():
         
         if transcription_data:
             files_to_cleanup.append(transcription_data["transcript_path"])
-            # Also cleanup the uploaded file from transcription test
-            if transcription_data["uploaded_filename"]:
-                uploaded_file_path = Path(__file__).parent.parent / f"storage/audio/{transcription_data['uploaded_filename']}"
-                files_to_cleanup.append(uploaded_file_path)
+            # Add the uploaded file from the upload test to cleanup
+            files_to_cleanup.append(upload_data["file_path"])
         
         # Test 3: Embedding
         print("\n" + "=" * 50)
@@ -161,7 +159,7 @@ def run_pipeline_tests():
         print(f"[ERROR] Test suite failed with exception: {str(e)}")
         return False
     
-    finally:
+    # finally:
         # Cleanup all files
         cleanup_files(files_to_cleanup)
 

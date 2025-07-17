@@ -22,18 +22,19 @@ logger = logging.getLogger(__name__)
 
 def embed_transcript(meeting_id: str) -> Dict[str, Any]:
     """
-    Embed a transcript using OpenAI's embedding API and store in FAISS index
+    Embed transcript text into vector representations
     
     Args:
-        meeting_id (str): The meeting ID to embed
+        meeting_id (str): The meeting ID
         
     Returns:
         Dict[str, Any]: Embedding metadata with meeting_id, num_chunks, vector_index_path, meta_path
     """
-    # Construct file paths
-    transcript_file_path = Path(f"storage/transcripts/{meeting_id}.json")
-    vector_index_path = Path(f"storage/vectors/{meeting_id}.index")
-    meta_file_path = Path(f"storage/vectors/{meeting_id}_meta.json")
+    # Construct file paths using absolute paths
+    base_path = Path(__file__).parent.parent
+    transcript_file_path = base_path / f"storage/transcripts/{meeting_id}.json"
+    vector_index_path = base_path / f"storage/vectors/{meeting_id}.index"
+    meta_file_path = base_path / f"storage/vectors/{meeting_id}_meta.json"
     
     # Check if transcript file exists
     if not transcript_file_path.exists():
@@ -175,8 +176,9 @@ def load_embedding_index(meeting_id: str) -> tuple:
     Returns:
         tuple: (faiss_index, metadata_dict)
     """
-    vector_index_path = Path(f"storage/vectors/{meeting_id}.index")
-    meta_file_path = Path(f"storage/vectors/{meeting_id}_meta.json")
+    base_path = Path(__file__).parent.parent
+    vector_index_path = base_path / f"storage/vectors/{meeting_id}.index"
+    meta_file_path = base_path / f"storage/vectors/{meeting_id}_meta.json"
     
     if not vector_index_path.exists() or not meta_file_path.exists():
         raise FileNotFoundError(f"Embedding files not found for meeting_id: {meeting_id}")
